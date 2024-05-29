@@ -1,0 +1,107 @@
+/*Assignment: implement a basic reactive system with cells with settable values (input cells) and cells with values computed in terms of other cells (compute cells). 
+Implement updates so that when an input value is changed, values propagate to reach a new stable system state. In addition, compute cells should allow for registering change 
+notification callbacks. Call a cell's callback when the cell's value in a new stable state has changed from the previous stable state.*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct Cell {
+    double value;
+} Cell;
+
+typedef struct InputCell {
+    Cell base;
+} InputCell;
+
+typedef struct ComputeCell ComputeCell;
+
+typedef void (*Callback)(ComputeCell* cell, double oldValue, double newValue);
+
+struct ComputeCell {
+    Cell base;
+    Cell** dependencies;
+    int dependencyCount;
+    double (*computeFunc)(Cell** dependencies, int dependencyCount);
+    Callback* callbacks;
+    int callbackCount;
+};
+
+InputCell* createInputCell(double initialValue){
+    InputCell* cell = (InputCell*)malloc(sizeof(InputCell));
+    cell->base.value = initialValue;
+    return cell;
+}
+
+ComputeCell* createComputeCell(Cell** dependencies, int dependencyCount, double (*computeFunc)(Cell** dependencies, int dependencyCount)){
+    ComputeCell* cell = (ComputeCell*)malloc(sizeof(ComputeCell));
+    cell->dependencies = dependencies;
+    cell->dependencyCount = dependencyCount;
+    cell->computeFunc = computeFunc;
+    cell->callbackCount = 0;
+    cell->callbacks = NULL;
+    cell->base.value = computeFunc(dependencies, dependencyCount);
+    return cell
+}
+
+void addCallback(ComputeCell* cell, Callback callback){
+    cell->callbackCount++;
+    cell->callbacks = (Callback*)realloc(cell->callbacks, cell->callbackCount * sizeof(Callback));
+    cell->callbacks[cell->callbackCount - 1] = callback;
+}
+
+void setInputCellValue(InputCell* cell, double newValue){
+    cell->base.value = newValue;
+}
+
+void updateComputeCell(ComputeCell* cell){
+    double oldValue = cell->base.value;
+    double newValue = cell->computeFunc(cell->dependencies, cell->dependencyCount);
+    cell->base.value = newValue;
+    if (oldValue != newValue){
+        for (int i = 0; i < cell->callbackCount; i++){
+            cell->callbacks[i](cell, oldValue, newValue);
+        }
+    }
+}
+
+void updateDependencies(ComputeCell* cell){
+    for (int i = 0; i < cell->dependencyCount; i++){
+        if (ComputeCell* dep = dynamic_cast<ComputeCell*>(cell->dependencies[i])){
+            updateComputeCell(dep);
+        }
+    }
+}
+
+double computeSum(Cell** dependencies, int dependencyCount){
+    double sum = 0.0;
+    for (int = 0; i < dependencyCount; i++){
+        sum += dependencies[i]->value;
+    }
+    return sum
+}
+
+void printChange(ComputeCell* cell, double oldValue, double newValue){
+    printf("Cell value changed from %f to %f\n", oldValue, newValue);
+}
+
+int main()
+{
+    InputCell* input1 = createInputCell(1.0);
+    InputCell* input2 = createInputCell(2.0);
+    
+    Cell* dependencies[] = { (Cell*)input1, (Cell*)input2 };
+    ComputeCell* sumCell = createComputeCell(dependencies, 2, computeSum);
+    
+    addCallback(sumCell, printChange);
+    
+    setInputCellValue(input1, 3.0);
+    updateDependencies(sumCell);
+    
+    free(input1);
+    free(input2);
+    free(sumCell->callbacks);
+    free(sumCell);
+    
+    return 0;
+}
