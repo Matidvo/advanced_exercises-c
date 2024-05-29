@@ -1,0 +1,117 @@
+/*
+Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+
+You may assume that each input would have exactly one solution, and you may not use the same element twice.
+
+You can return the answer in any order.
+
+Example 1:
+
+Input: nums = [2,7,11,15], target = 9
+Output: [0,1]
+Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].
+Example 2:
+
+Input: nums = [3,2,4], target = 6
+Output: [1,2]
+Example 3:
+
+Input: nums = [3,3], target = 6
+Output: [0,1]
+ 
+Constraints:
+
+2 <= nums.length <= 104
+-109 <= nums[i] <= 109
+-109 <= target <= 109
+Only one valid answer exists.
+
+Follow-up: Can you come up with an algorithm that is less than O(n2) time complexity?
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+
+// Definition for a hash map node
+struct Node {
+    int key;
+    int value;
+    struct Node* next;
+};
+
+// Function to create a new hash map node
+struct Node* createNode(int key, int value) {
+    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+    newNode->key = key;
+    newNode->value = value;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Function to free the memory allocated for a hash map
+void freeMap(struct Node** hashMap, int hashMapSize) {
+    for (int i = 0; i < hashMapSize; i++) {
+        struct Node* current = hashMap[i];
+        while (current != NULL) {
+            struct Node* temp = current;
+            current = current->next;
+            free(temp);
+        }
+    }
+    free(hashMap);
+}
+
+int* twoSum(int* nums, int numsSize, int target, int* returnSize) {
+    // Create a hash map to store numbers and their indices
+    int hashMapSize = 2 * numsSize; 
+    struct Node** hashMap = (struct Node**)malloc(sizeof(struct Node*) * hashMapSize);
+    for (int i = 0; i < hashMapSize; i++) {
+        hashMap[i] = NULL;
+    }
+
+    // Iterate through the array and check if the complement of the current number exists in the hash map
+    for (int i = 0; i < numsSize; i++) {
+        int complement = target - nums[i];
+        int hashIndex = abs(complement) % hashMapSize;
+
+        // Check if the complement exists in the hash map
+        struct Node* current = hashMap[hashIndex];
+        while (current != NULL) {
+            if (current->key == complement) {
+                // Found the complement, return indices
+                int* result = (int*)malloc(sizeof(int) * 2);
+                result[0] = current->value;
+                result[1] = i;
+                *returnSize = 2;
+                freeMap(hashMap, hashMapSize);
+                return result;
+            }
+            current = current->next;
+        }
+
+        // Insert the current number and its index into the hash map
+        struct Node* newNode = createNode(nums[i], i);
+        newNode->next = hashMap[hashIndex];
+        hashMap[hashIndex] = newNode;
+    }
+
+    // No solution found
+    *returnSize = 0;
+    freeMap(hashMap, hashMapSize);
+    return NULL;
+}
+
+int main() {
+    int nums[] = {2, 7, 11, 15};
+    int target = 9;
+    int numsSize = sizeof(nums) / sizeof(nums[0]);
+    int returnSize;
+    int* result = twoSum(nums, numsSize, target, &returnSize);
+    if (result != NULL) {
+        printf("[%d, %d]\n", result[0], result[1]);
+        free(result);
+    } else {
+        printf("No solution found.\n");
+    }
+    return 0;
+}
